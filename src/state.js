@@ -1,0 +1,159 @@
+/**
+ * state.js — Lightweight application state store
+ * Manages all step data, AI outputs, and current navigation state.
+ */
+
+const DEFAULT_STATE = {
+    // 全体設定
+    apiKey: '',
+    apiProvider: 'gemini', // 'gemini' or 'openai'
+    demoMode: true,
+    currentStep: 1,
+    completedSteps: new Set(),
+
+    // Step 1: 種と整理 (Initial Seed + Chat)
+    seed: {
+        question: '',
+        target: '',
+        direction: '',
+        chatHistory: [],
+        refinedResult: null, // { type, title, target, goal, approaches }
+    },
+
+    // Step 2: デザイン案 (Research Design Proposals)
+    rq: {
+        aiResults: null, // List of 10 FINER proposals
+        selectedDesign: null,
+    },
+
+    // Step 3: ガイドライン
+    guideline: {
+        selected: null,
+        checklist: [],
+    },
+
+    // Step 4: 文献レビュー
+    review: {
+        keywords: '',
+        years: '5',
+        language: 'ja+en',
+        database: 'PubMed',
+        aiResult: null,
+    },
+
+    // Step 5: データ収集
+    data: {
+        types: [],
+        sampleSize: '',
+        grouping: '',
+    },
+
+    // Step 6: 分析方法
+    analysis: {
+        aiResult: null,
+    },
+
+    // Step 7: 研究計画書
+    proposal: {
+        draft: '',
+    },
+};
+
+class AppState {
+    constructor() {
+        this._state = JSON.parse(JSON.stringify(DEFAULT_STATE, (key, value) =>
+            value instanceof Set ? [...value] : value
+        ));
+        this._state.completedSteps = new Set();
+        this._listeners = [];
+        this._load();
+    }
+
+    get(path) {
+        return path.split('.').reduce((obj, key) => obj?.[key], this._state);
+    }
+
+    set(path, value) {
+        const keys = path.split('.');
+        const last = keys.pop();
+        const target = keys.reduce((obj, key) => obj[key], this._state);
+        target[last] = value;
+        this._notify(path);
+        this._save();
+    }
+
+    update(path, updater) {
+        const current = this.get(path);
+        this.set(path, updater(current));
+    }
+
+    subscribe(listener) {
+        this._listeners.push(listener);
+        return () => {
+            this._listeners = this._listeners.filter(l => l !== listener);
+        };
+    }
+
+    _notify(path) {
+        this._listeners.forEach(l => l(path, this._state));
+    }
+
+    _save() {
+        try {
+            const serializable = { ...this._state };
+            serializable.completedSteps = [...this._state.completedSteps];
+            localStorage.setItem('research-app-state', JSON.stringify(serializable));
+        } catch (e) { /* ignore */ }
+    }
+
+    _load() {
+        try {
+            const saved = localStorage.getItem('research-app-state');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                parsed.completedSteps = new Set(parsed.completedSteps || []);
+                // Deep-merge: ensure nested objects retain all default keys
+                for (const [key, defaultVal] of Object.entries(DEFAULT_STATE)) {
+                    if (key === 'completedSteps') continue;
+                    if (parsed[key] !== undefined && typeof defaultVal === 'object' && defaultVal !== null && !Array.isArray(defaultVal)) {
+                        this._state[key] = { ...defaultVal, ...parsed[key] };
+                        // Ensure arrays exist
+                        for (const [subKey, subDefault] of Object.entries(defaultVal)) {
+                            if (Array.isArray(subDefault) && !Array.isArray(this._state[key][subKey])) {
+                                this._state[key][subKey] = subDefault;
+                            }
+                        }
+                    } else if (parsed[key] !== undefined) {
+                        this._state[key] = parsed[key];
+                    }
+                }
+                this._state.completedSteps = parsed.completedSteps;
+            }
+            // Load API key
+            const key = localStorage.getItem('research-app-api-key');
+            if (key) this._state.apiKey = key;
+            const demo = localStorage.getItem('research-app-demo-mode');
+            if (demo !== null) this._state.demoMode = demo === 'true';
+        } catch (e) {
+            // If loading fails, reset to defaults
+            console.warn('Failed to load state, using defaults', e);
+        }
+    }
+
+    saveApiKey(key) {
+        this._state.apiKey = key;
+        localStorage.setItem('research-app-api-key', key);
+    }
+
+    saveDemoMode(val) {
+        this._state.demoMode = val;
+        localStorage.setItem('research-app-demo-mode', String(val));
+    }
+
+    reset() {
+        localStorage.removeItem('research-app-state');
+        location.reload();
+    }
+}
+
+export const state = new AppState();
