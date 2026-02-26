@@ -161,7 +161,7 @@ function initSettings() {
     });
 
     btnSave.addEventListener('click', () => {
-        state.set('apiProvider', apiProviderSelect.value);
+        state.saveApiProvider(apiProviderSelect.value);
         state.saveApiKey(apiKeyInput.value.trim());
         state.saveDemoMode(demoToggle.checked);
         settingsModal.classList.remove('visible');

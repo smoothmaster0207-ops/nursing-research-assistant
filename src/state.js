@@ -108,34 +108,14 @@ class AppState {
 
     _load() {
         try {
-            const saved = localStorage.getItem('research-app-state');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                parsed.completedSteps = new Set(parsed.completedSteps || []);
-                // Deep-merge: ensure nested objects retain all default keys
-                for (const [key, defaultVal] of Object.entries(DEFAULT_STATE)) {
-                    if (key === 'completedSteps') continue;
-                    if (parsed[key] !== undefined && typeof defaultVal === 'object' && defaultVal !== null && !Array.isArray(defaultVal)) {
-                        this._state[key] = { ...defaultVal, ...parsed[key] };
-                        // Ensure arrays exist
-                        for (const [subKey, subDefault] of Object.entries(defaultVal)) {
-                            if (Array.isArray(subDefault) && !Array.isArray(this._state[key][subKey])) {
-                                this._state[key][subKey] = subDefault;
-                            }
-                        }
-                    } else if (parsed[key] !== undefined) {
-                        this._state[key] = parsed[key];
-                    }
-                }
-                this._state.completedSteps = parsed.completedSteps;
-            }
-            // Load API key
+            // APIの設定のみ復元（研究データは毎回リセット）
             const key = localStorage.getItem('research-app-api-key');
             if (key) this._state.apiKey = key;
             const demo = localStorage.getItem('research-app-demo-mode');
             if (demo !== null) this._state.demoMode = demo === 'true';
+            const provider = localStorage.getItem('research-app-api-provider');
+            if (provider) this._state.apiProvider = provider;
         } catch (e) {
-            // If loading fails, reset to defaults
             console.warn('Failed to load state, using defaults', e);
         }
     }
@@ -148,6 +128,11 @@ class AppState {
     saveDemoMode(val) {
         this._state.demoMode = val;
         localStorage.setItem('research-app-demo-mode', String(val));
+    }
+
+    saveApiProvider(val) {
+        this._state.apiProvider = val;
+        localStorage.setItem('research-app-api-provider', val);
     }
 
     reset() {
