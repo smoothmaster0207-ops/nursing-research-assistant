@@ -195,7 +195,7 @@ async function generateRefinedResult() {
 【出力形式（JSONのみ）】
 {
   "type": "research" | "practice" | "qi",
-  "title": "整理されたタイトル（RQ、実践名、またはQI目標）",
+  "rq": "整理されたリサーチクエスチョン（必ず「〜は〜にどのような影響を与えるか？」などの疑問形で出力すること。実践報告やQIの場合はその目標を疑問形で構文すること）",
   "target": "対象者（母集団）",
   "goal": "目的・核心的な到達点",
   "approaches": [
@@ -218,12 +218,31 @@ async function generateRefinedResult() {
     if (area) {
       area.classList.remove('hidden');
       area.innerHTML = renderRefinedResult(result);
+
+      // 確定ボタンのイベントリスナーを設定
+      const btnConfirm = area.querySelector('#btnConfirmRq');
+      const rqInput = area.querySelector('#refinedRqInput');
+
+      btnConfirm.addEventListener('click', () => {
+        if (!rqInput.value.trim()) return;
+
+        // 編集されたRQで上書きして確定
+        result.rq = rqInput.value.trim();
+        state.set('seed.refinedResult', result);
+        state.set('seed.rqConfirmed', true);
+
+        // サマリーパネルの更新（確定後に初めて表示する）
+        updateSummary('Theme', result.rq);
+
+        // UIを「確定済み」に更新
+        area.innerHTML = renderRefinedResult(result);
+      });
     }
-    updateSummary('Theme', result.title);
   }
 }
 
 function renderRefinedResult(result) {
+  const isConfirmed = state.get('seed.rqConfirmed');
   const typeLabels = {
     research: { title: 'リサーチクエスチョン', badge: '学術研究' },
     practice: { title: '実践報告の焦点', badge: '実践報告' },
@@ -238,12 +257,15 @@ function renderRefinedResult(result) {
         整理された研究の骨子
       </div>
       <div class="ai-response-body">
+        <p class="text-muted" style="margin-bottom: var(--space-4); font-size: 0.9rem;">
+          AIが提案したリサーチクエスチョン（RQ）を必要に応じて編集し、納得できる内容になったら「このRQで確定する」ボタンを押してください。
+        </p>
         <div class="format-block">
-          <div class="format-row">
+          <div class="format-row" style="flex-direction: column; align-items: stretch; gap: var(--space-2);">
             <span class="format-label">${labels.title}:</span>
-            <span class="format-value"><strong>${result.title}</strong></span>
+            <textarea id="refinedRqInput" class="input" style="font-weight: 500; min-height: 80px;" ${isConfirmed ? 'readonly' : ''}>${result.rq || result.title || ''}</textarea>
           </div>
-          <div class="format-row">
+          <div class="format-row mt-4">
             <span class="format-label">対象:</span>
             <span class="format-value">${result.target}</span>
           </div>
@@ -252,7 +274,12 @@ function renderRefinedResult(result) {
             <span class="format-value">${result.goal}</span>
           </div>
         </div>
-        <p class="mt-4 small text-muted">※ この骨子に基づき、次のステップで具体的な研究デザインを検討します。</p>
+        
+        <div style="margin-top: var(--space-5); text-align: center;">
+          <button class="btn ${isConfirmed ? 'btn-secondary' : 'btn-primary'}" id="btnConfirmRq" ${isConfirmed ? 'disabled' : ''}>
+            ${isConfirmed ? '✓ 確定済み' : '✨ このRQで確定する'}
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -267,5 +294,5 @@ function updateSummary(key, value) {
 }
 
 export function validateStep1() {
-  return !!state.get('seed.refinedResult');
+  return !!state.get('seed.refinedResult') && !!state.get('seed.rqConfirmed');
 }

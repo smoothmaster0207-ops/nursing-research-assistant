@@ -81,7 +81,7 @@ async function generateProposal() {
 以下の情報を統合して研究計画書草案を作成してください。
 
 【研究テーマ】
-${seed.refinedResult?.title || seed.question || ''}
+${seed.refinedResult?.rq || seed.refinedResult?.title || seed.question || ''}
 
 【研究デザイン】
 ${rq.selectedDesign || ''}

@@ -186,7 +186,7 @@ class AppState {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         const date = new Date().toISOString().slice(0, 10);
-        const theme = (this._state.seed?.refinedResult?.title || '研究計画').substring(0, 20);
+        const theme = (this._state.seed?.refinedResult?.rq || this._state.seed?.refinedResult?.title || '研究計画').substring(0, 20);
         a.href = url;
         a.download = `研究計画_${theme}_${date}.json`;
         document.body.appendChild(a);
