@@ -38,8 +38,8 @@ export function renderStep2(container) {
 
       <div class="card highlight-card" style="margin-bottom: var(--space-6);">
         <div class="format-row">
-          <span class="format-label">整理されたテーマ:</span>
-          <span class="format-value"><strong>${refinedResult.title}</strong></span>
+          <span class="format-label">リサーチクエスチョン:</span>
+          <span class="format-value"><strong>${refinedResult.rq || refinedResult.title}</strong></span>
         </div>
         <div class="format-row">
           <span class="format-label">対象:</span>

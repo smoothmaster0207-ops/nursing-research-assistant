@@ -198,11 +198,11 @@ function restoreSummary() {
     if (seed.refinedResult?.rq || seed.refinedResult?.title || seed.question) {
         setSum('Theme', ((seed.refinedResult?.rq || seed.refinedResult?.title || seed.question)).substring(0, 60));
     }
+    if (seed.refinedResult) {
+        setSum('RQ', seed.refinedResult.rq || seed.refinedResult.title);
+    }
     if (rq.selectedDesign) {
         setSum('Design', rq.selectedDesign);
-    }
-    if (seed.refinedResult) {
-        setSum('RQ', seed.refinedResult.title);
     }
     if (guideline.selected) {
         setSum('Guideline', guideline.selected);
