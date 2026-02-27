@@ -30,6 +30,7 @@ const DEFAULT_STATE = {
     guideline: {
         selected: null,
         checklist: [],
+        notes: {},
     },
 
     // Step 4: 文献レビュー

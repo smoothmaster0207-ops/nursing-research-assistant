@@ -5,6 +5,11 @@
 import { state } from '../state.js';
 import { callAI } from '../ai-client.js';
 import { PROMPTS } from '../prompts/index.js';
+import { CHECKLIST_ITEMS } from './step3-guideline.js';
+
+function getChecklistItems(guidelineName) {
+  return CHECKLIST_ITEMS[guidelineName] || [];
+}
 
 export function renderStep4(container) {
   const review = state.get('review');
@@ -81,15 +86,41 @@ async function runReview() {
   const rqText = refined?.goal || '';
   const purpose = refined?.goal || '';
   const design = state.get('rq.selectedDesign') || '';
+  const guidelineName = state.get('guideline.selected') || '';
+
+  // チェックリストのメモ情報を収集
+  const notes = state.get('guideline.notes') || {};
+  const guidelineItems = getChecklistItems(guidelineName);
+  let checklistSummary = '';
+  if (guidelineItems.length > 0) {
+    const filled = [];
+    const unfilled = [];
+    guidelineItems.forEach((item, i) => {
+      const note = notes[i];
+      if (note && note.trim()) {
+        filled.push(`✓ ${item}: ${note.trim()}`);
+      } else {
+        unfilled.push(`□ ${item}`);
+      }
+    });
+    if (filled.length > 0) {
+      checklistSummary += `\n検討済みの項目:\n${filled.join('\n')}`;
+    }
+    if (unfilled.length > 0) {
+      checklistSummary += `\n未検討の項目（文献レビューで補完が必要）:\n${unfilled.join('\n')}`;
+    }
+  }
 
   const userMsg = `
 研究テーマ: ${theme}
 リサーチクエスチョン: ${rqText}
 研究の目的: ${purpose}
 研究デザイン: ${design}
+準拠ガイドライン: ${guidelineName}
 重視するキーワード: ${review.keywords}
 対象範囲: ${review.language}
 重視する視点: ${review.context || '特定なし'}
+${checklistSummary}
   `.trim();
 
   try {

@@ -20,7 +20,7 @@ const GUIDELINE_MAP = {
   '事例／実践報告': { name: 'CARE', full: 'CAse REport Guidelines', desc: '症例報告の報告基準' },
 };
 
-const CHECKLIST_ITEMS = {
+export const CHECKLIST_ITEMS = {
   'CONSORT': [
     'タイトルに「ランダム化」を含む',
     '構造化された抄録',
@@ -151,7 +151,7 @@ export function renderStep3(container) {
   }
 
   const items = CHECKLIST_ITEMS[guideline?.name] || [];
-  const checkedItems = state.get('guideline.checklist') || [];
+  const notes = state.get('guideline.notes') || {};
 
   container.innerHTML = `
     <div class="fade-in">
@@ -195,7 +195,7 @@ export function renderStep3(container) {
       </div>
 
       <div id="guidelineDetailArea">
-        ${guideline ? renderGuidelineDetail(guideline, items, checkedItems) : `
+        ${guideline ? renderGuidelineDetail(guideline, items, notes) : `
           <div class="card" style="text-align: center; padding: var(--space-12);">
             <p style="color: var(--color-text-muted);">上の表から研究タイプを選択してください。</p>
           </div>
@@ -218,6 +218,7 @@ export function renderStep3(container) {
       // Update state
       state.set('rq.selectedDesign', type);
       state.set('guideline.checklist', []);
+      state.set('guideline.notes', {});
 
       const newGuideline = GUIDELINE_MAP[type] || findGuideline(type);
       if (newGuideline) {
@@ -238,7 +239,7 @@ export function renderStep3(container) {
       if (newGuideline) {
         const detailArea = container.querySelector('#guidelineDetailArea');
         const newItems = CHECKLIST_ITEMS[newGuideline.name] || [];
-        detailArea.innerHTML = renderGuidelineDetail(newGuideline, newItems, []);
+        detailArea.innerHTML = renderGuidelineDetail(newGuideline, newItems, {});
         attachChecklistListeners(container);
         updateGuidelineSummary(newGuideline.name);
       }
@@ -252,7 +253,8 @@ export function renderStep3(container) {
   attachChecklistListeners(container);
 }
 
-function renderGuidelineDetail(guideline, items, checkedItems) {
+function renderGuidelineDetail(guideline, items, notes) {
+  const filledCount = Object.values(notes).filter(v => v && v.trim()).length;
   return `
     <div class="guideline-card">
       <div class="guideline-card-header">
@@ -261,37 +263,80 @@ function renderGuidelineDetail(guideline, items, checkedItems) {
         <p style="margin-top: var(--space-2); font-size: var(--font-size-xs);">${guideline.desc}</p>
       </div>
       <div class="checklist" id="guidelineChecklist">
-        <h4 style="padding: var(--space-3) 0; font-weight: 700;">チェックリスト</h4>
-        ${items.map((item, i) => `
-          <div class="checklist-item">
-            <div class="checklist-check ${checkedItems.includes(i) ? 'checked' : ''}" data-index="${i}">
-              ${checkedItems.includes(i) ? '✓' : ''}
+        <h4 style="padding: var(--space-3) 0; font-weight: 700;">チェックリスト <span class="checklist-progress">${filledCount} / ${items.length} 項目入力済み</span></h4>
+        <p class="hint" style="margin-bottom: var(--space-3);">考えがある項目はメモを入力してください。未入力の項目は文献レビューで補完します。</p>
+        ${items.map((item, i) => {
+    const noteText = notes[i] || '';
+    const hasNote = noteText.trim().length > 0;
+    return `
+          <div class="checklist-item-note ${hasNote ? 'has-note' : ''}">
+            <div class="checklist-item-header">
+              <div class="checklist-check ${hasNote ? 'checked' : ''}" data-index="${i}">
+                ${hasNote ? '✓' : ''}
+              </div>
+              <span class="checklist-label">${item}</span>
             </div>
-            <span>${item}</span>
+            <textarea class="checklist-note-input" data-index="${i}" 
+              placeholder="現時点の考え・方針があればメモしてください（未入力でもOK）"
+              rows="1">${noteText}</textarea>
           </div>
-        `).join('')}
+        `;
+  }).join('')}
       </div>
     </div>
   `;
 }
 
 function attachChecklistListeners(container) {
-  container.querySelectorAll('.checklist-check').forEach(checkEl => {
-    checkEl.addEventListener('click', () => {
-      const idx = parseInt(checkEl.dataset.index);
-      let checked = state.get('guideline.checklist') || [];
-      if (checked.includes(idx)) {
-        checked = checked.filter(i => i !== idx);
-        checkEl.classList.remove('checked');
-        checkEl.textContent = '';
-      } else {
-        checked.push(idx);
+  container.querySelectorAll('.checklist-note-input').forEach(textarea => {
+    // 高さ自動調整
+    if (textarea.value) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    }
+
+    textarea.addEventListener('input', () => {
+      const idx = textarea.dataset.index;
+      const value = textarea.value;
+      const notes = state.get('guideline.notes') || {};
+      notes[idx] = value;
+      state.set('guideline.notes', notes);
+
+      // チェック状態の自動更新
+      const item = textarea.closest('.checklist-item-note');
+      const checkEl = item.querySelector('.checklist-check');
+      if (value.trim()) {
+        item.classList.add('has-note');
         checkEl.classList.add('checked');
         checkEl.textContent = '✓';
+      } else {
+        item.classList.remove('has-note');
+        checkEl.classList.remove('checked');
+        checkEl.textContent = '';
       }
+
+      // 高さ自動調整
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+
+      // 進捗表示を更新
+      updateChecklistProgress(container);
+
+      // checklist配列も互換性のため更新
+      const checked = Object.entries(notes).filter(([, v]) => v && v.trim()).map(([k]) => parseInt(k));
       state.set('guideline.checklist', checked);
     });
   });
+}
+
+function updateChecklistProgress(container) {
+  const notes = state.get('guideline.notes') || {};
+  const filledCount = Object.values(notes).filter(v => v && v.trim()).length;
+  const totalCount = container.querySelectorAll('.checklist-note-input').length;
+  const progressEl = container.querySelector('.checklist-progress');
+  if (progressEl) {
+    progressEl.textContent = `${filledCount} / ${totalCount} 項目入力済み`;
+  }
 }
 
 function updateGuidelineSummary(name) {
