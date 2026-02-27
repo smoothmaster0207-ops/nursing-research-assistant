@@ -122,7 +122,7 @@ ${review.aiResult?.structure || '未実施'}
   try {
     const response = await callAI(PROMPTS.proposalDraft, userMsg, {
       module: 'proposalDraft',
-      maxTokens: 4000,
+      maxTokens: 8000,
     });
     state.set('proposal.draft', response);
     document.querySelector('#step7Results').innerHTML = renderProposal(response);
