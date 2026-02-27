@@ -322,6 +322,27 @@ function renderProposal(proposal, selectedDesign, history) {
     </div>
 
     ${historySection}
+
+    <div class="card" style="margin-top: var(--space-6);">
+      <h3 class="section-title">✍️ 自分で研究デザインを選択する</h3>
+      <p class="text-muted" style="margin-bottom: var(--space-4);">AIの提案がイメージと違う場合、以下のリストから自分で研究デザイン（研究タイプ）を選択できます。</p>
+      
+      <div class="form-group">
+        <label for="manualDesignSelect">研究タイプを選択</label>
+        <select id="manualDesignSelect" class="select" style="max-width: 400px;">
+          <option value="">（選択してください）</option>
+          <option value="介入研究" ${selectedDesign === '介入研究' ? 'selected' : ''}>介入研究（RCTなど）</option>
+          <option value="観察研究" ${selectedDesign === '観察研究' ? 'selected' : ''}>観察研究（コホート・横断など）</option>
+          <option value="質的研究" ${selectedDesign === '質的研究' ? 'selected' : ''}>質的研究（インタビューなど）</option>
+          <option value="QI（質改善）" ${selectedDesign === 'QI（質改善）' ? 'selected' : ''}>QI（質改善プロジェクト）</option>
+          <option value="事例／実践報告" ${selectedDesign === '事例／実践報告' ? 'selected' : ''}>事例／実践報告</option>
+          <option value="システマティックレビュー" ${selectedDesign === 'システマティックレビュー' ? 'selected' : ''}>システマティックレビュー</option>
+          <option value="スコーピングレビュー" ${selectedDesign === 'スコーピングレビュー' ? 'selected' : ''}>スコーピングレビュー</option>
+          <option value="混合研究法" ${selectedDesign === '混合研究法' ? 'selected' : ''}>混合研究法</option>
+        </select>
+        <p class="hint">これを選択すると、AIの提案ではなくここで選んだデザインが採用されます。</p>
+      </div>
+    </div>
   `;
 }
 
@@ -371,6 +392,9 @@ function attachListeners(container) {
     mainCard.addEventListener('click', () => {
       const design = mainCard.dataset.design;
       const currentSelected = state.get('rq.selectedDesign');
+
+      const manualSelect = container.querySelector('#manualDesignSelect');
+
       if (currentSelected === design) {
         // 選択解除
         state.set('rq.selectedDesign', null);
@@ -382,6 +406,7 @@ function attachListeners(container) {
         mainCard.classList.add('selected');
         state.set('rq.selectedDesign', design);
         mainCard.querySelector('.select-hint').textContent = '✅ 選択済み — クリックで選択解除';
+        if (manualSelect) manualSelect.value = ''; // セレクトボックスをリセット
       }
       updateSummary('Design', state.get('rq.selectedDesign') || '');
     });
@@ -392,6 +417,9 @@ function attachListeners(container) {
     item.addEventListener('click', () => {
       const design = item.dataset.design;
       const currentSelected = state.get('rq.selectedDesign');
+
+      const manualSelect = container.querySelector('#manualDesignSelect');
+
       if (currentSelected === design) {
         state.set('rq.selectedDesign', null);
         item.classList.remove('selected');
@@ -402,10 +430,30 @@ function attachListeners(container) {
         // メインカードの選択ヒントをリセット
         const hint = container.querySelector('.proposal-card[data-is-current="true"] .select-hint');
         if (hint) hint.textContent = 'クリックしてこのデザインを採用';
+        if (manualSelect) manualSelect.value = ''; // セレクトボックスをリセット
       }
       updateSummary('Design', state.get('rq.selectedDesign') || '');
     });
   });
+
+  // 手動デザイン選択セレクトボックス
+  const manualSelect = container.querySelector('#manualDesignSelect');
+  if (manualSelect) {
+    manualSelect.addEventListener('change', (e) => {
+      const design = e.target.value;
+      if (design) {
+        // カードと履歴の選択を解除
+        container.querySelectorAll('.proposal-card, .history-item').forEach(c => c.classList.remove('selected'));
+        const hint = container.querySelector('.proposal-card[data-is-current="true"] .select-hint');
+        if (hint) hint.textContent = 'クリックしてこのデザインを採用';
+
+        state.set('rq.selectedDesign', design);
+      } else {
+        state.set('rq.selectedDesign', null);
+      }
+      updateSummary('Design', state.get('rq.selectedDesign') || '');
+    });
+  }
 
   // 代替デザインボタン
   const altBtn = container.querySelector('#btnAlternativeDesign');
