@@ -1292,3 +1292,34 @@ body {
 .fade-in {
   animation: fadeIn 0.5s ease;
 }
+
+/* --- FINER Detail Rows --- */
+.finer-details {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.finer-detail-row {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.finer-detail-row:last-child {
+  border-bottom: none;
+}
+
+.finer-label {
+  font-weight: 600;
+  min-width: 120px;
+  flex-shrink: 0;
+  color: var(--color-text);
+}
+
+.finer-value {
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
