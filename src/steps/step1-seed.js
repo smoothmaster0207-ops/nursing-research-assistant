@@ -19,6 +19,24 @@ export function renderStep1(container) {
       </p>
 
       <div class="card" style="margin-bottom: var(--space-6);">
+        
+        <!-- 個人情報入力への警告バナー -->
+        <div class="alert" style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-5);">
+          <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
+            <div style="font-size: 1.25rem;">⚠️</div>
+            <div>
+              <p style="font-weight: bold; margin-bottom: var(--space-1);">【重要】個人情報を入力しないでください</p>
+              <p style="font-size: var(--font-size-sm); margin-bottom: var(--space-2);">
+                本アプリでは、研究構想の支援のために生成AIを利用しています。<br>
+                以下に該当する情報は絶対に入力しないでください。
+              </p>
+              <button class="btn btn-outline btn-sm" id="btnOpenPrivacyModal" style="background-color: white; border-color: #856404; color: #856404;">
+                詳細を確認
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="form-group">
           <label for="seedQuestion">現場の疑問・課題・違和感</label>
           <textarea id="seedQuestion" class="textarea" placeholder="例：高齢の入院患者が退院後すぐに再入院してしまうケースが多い。退院支援のやり方を変えれば防げるのではないか？">${seed.question || ''}</textarea>
@@ -48,6 +66,79 @@ export function renderStep1(container) {
         </div>
       </div>
     </div>
+
+    <!-- 個人情報警告モーダル -->
+    <div class="modal-overlay" id="privacyModal">
+      <div class="modal" style="max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+          <h2>⚠️ 個人情報に関する注意事項</h2>
+          <button class="btn-close" id="btnClosePrivacyModal" aria-label="閉じる">&times;</button>
+        </div>
+        <div class="modal-body" style="overflow-y: auto; padding-right: var(--space-2);">
+          <h3 style="color: var(--color-danger); margin-bottom: var(--space-3);">❌ 入力してはいけない情報</h3>
+          
+          <div style="margin-bottom: var(--space-4);">
+            <h4 style="margin-bottom: var(--space-2);">1. 個人を特定できる情報（個人情報）</h4>
+            <ul style="padding-left: var(--space-5); list-style-type: disc;">
+              <li>氏名（患者名・家族名・職員名）</li>
+              <li>イニシャル</li>
+              <li>生年月日</li>
+              <li>住所</li>
+              <li>電話番号</li>
+              <li>メールアドレス</li>
+              <li>勤務先＋役職</li>
+              <li>病院名＋具体的な所属部署</li>
+              <li>顔写真や画像</li>
+              <li>マイナンバーなどの識別番号</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: var(--space-4);">
+            <h4 style="margin-bottom: var(--space-2);">2. 要配慮個人情報（特に慎重に扱う情報）</h4>
+            <ul style="padding-left: var(--space-5); list-style-type: disc;">
+              <li>病歴</li>
+              <li>診断名</li>
+              <li>障害の有無</li>
+              <li>精神疾患歴</li>
+              <li>感染症罹患歴</li>
+              <li>宗教・思想</li>
+              <li>犯罪歴</li>
+              <li>虐待歴</li>
+              <li>妊娠歴・不妊治療歴</li>
+            </ul>
+            <p style="color: var(--color-danger); font-size: var(--font-size-sm); margin-top: var(--space-1);">※単独でも入力しないでください。</p>
+          </div>
+
+          <div class="card" style="background-color: #fdf2f2; border-color: #fbd5d5; margin-bottom: var(--space-4);">
+            <h4 style="color: #9b1c1c; margin-bottom: var(--space-2);">⚠️ これも「ギリギリアウト」なので注意</h4>
+            <p style="font-size: var(--font-size-sm); margin-bottom: var(--space-3);">以下は一見安全に見えますが、組み合わせると個人を特定できる可能性があります。</p>
+            <ul style="padding-left: var(--space-5); list-style-type: disc; font-size: var(--font-size-sm); color: #771d1d;">
+              <li>「当院ICUで唯一の20代男性看護師」</li>
+              <li>「○○市在住の透析患者」</li>
+              <li>「昨年心臓移植を受けた70代女性」</li>
+              <li>「救急外来で月に1回来るアルコール依存の患者」</li>
+              <li>「NICUで体重900gで出生した症例」</li>
+              <li>「市内で唯一のALS患者」</li>
+            </ul>
+            <p style="font-weight: bold; color: #9b1c1c; margin-top: var(--space-3); text-align: center;">👉 “少数・特異・唯一”という情報は特定リスクが高い</p>
+          </div>
+
+          <div>
+            <h3 style="color: var(--color-success); margin-bottom: var(--space-3);">✅ 推奨入力方法（安全な書き方）</h3>
+            <div style="display: grid; gap: var(--space-3);">
+              <div style="background-color: #fdf2f2; padding: var(--space-3); border-radius: var(--radius-sm); border-left: 4px solid var(--color-danger);">
+                <div style="font-weight: bold; margin-bottom: var(--space-1); color: var(--color-danger);">❌ NG例</div>
+                <div>「70代男性で○○市在住、心不全で再入院を繰り返すA氏」</div>
+              </div>
+              <div style="background-color: #f0fdf4; padding: var(--space-3); border-radius: var(--radius-sm); border-left: 4px solid var(--color-success);">
+                <div style="font-weight: bold; margin-bottom: var(--space-1); color: var(--color-success);">⭕️ OK例</div>
+                <div>「高齢心不全患者の再入院予防に関する課題」</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 
   // Event listeners
@@ -56,6 +147,31 @@ export function renderStep1(container) {
   const chatArea = container.querySelector('#chatArea');
   const input = container.querySelector('#chatInput');
   const btnSend = container.querySelector('#btnSend');
+
+  // Modal logic
+  const privacyModal = container.querySelector('#privacyModal');
+  const btnOpenPrivacyModal = container.querySelector('#btnOpenPrivacyModal');
+  const btnClosePrivacyModal = container.querySelector('#btnClosePrivacyModal');
+
+  if (btnOpenPrivacyModal) {
+    btnOpenPrivacyModal.addEventListener('click', () => {
+      privacyModal.classList.add('visible');
+    });
+  }
+
+  if (btnClosePrivacyModal) {
+    btnClosePrivacyModal.addEventListener('click', () => {
+      privacyModal.classList.remove('visible');
+    });
+  }
+
+  if (privacyModal) {
+    privacyModal.addEventListener('click', (e) => {
+      if (e.target === privacyModal) {
+        privacyModal.classList.remove('visible');
+      }
+    });
+  }
 
   textarea.addEventListener('input', () => {
     state.set('seed.question', textarea.value);
