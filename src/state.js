@@ -109,7 +109,7 @@ class AppState {
 
     _load() {
         try {
-            // APIの設定のみ復元（研究データは毎回リセット）
+            // APIの設定を復元
             const key = localStorage.getItem('research-app-api-key');
             if (key) this._state.apiKey = key;
             const demo = localStorage.getItem('research-app-demo-mode');
@@ -119,6 +119,104 @@ class AppState {
         } catch (e) {
             console.warn('Failed to load state, using defaults', e);
         }
+    }
+
+    /** 保存済み研究データがあるかチェック */
+    hasSavedData() {
+        try {
+            const raw = localStorage.getItem('research-app-state');
+            if (!raw) return false;
+            const saved = JSON.parse(raw);
+            // 最低限 seed.question があればデータありとみなす
+            return !!(saved.seed?.question || saved.seed?.refinedResult || saved.rq?.selectedDesign);
+        } catch {
+            return false;
+        }
+    }
+
+    /** 保存済みの研究データを復元 */
+    loadFullState() {
+        try {
+            const raw = localStorage.getItem('research-app-state');
+            if (!raw) return false;
+            const saved = JSON.parse(raw);
+
+            // 研究データをマージ（API設定以外の全項目）
+            const dataKeys = ['seed', 'rq', 'guideline', 'review', 'data', 'analysis', 'proposal', 'currentStep'];
+            dataKeys.forEach(key => {
+                if (saved[key] !== undefined) {
+                    this._state[key] = saved[key];
+                }
+            });
+
+            // completedSteps を復元（Set に変換）
+            if (saved.completedSteps) {
+                this._state.completedSteps = new Set(saved.completedSteps);
+            }
+
+            this._notify('*');
+            return true;
+        } catch (e) {
+            console.warn('Failed to load full state:', e);
+            return false;
+        }
+    }
+
+    /** 研究データをJSONファイルとしてエクスポート */
+    exportToJSON() {
+        const exportData = {
+            _exportedAt: new Date().toISOString(),
+            _version: '1.0',
+            seed: this._state.seed,
+            rq: this._state.rq,
+            guideline: this._state.guideline,
+            review: this._state.review,
+            data: this._state.data,
+            analysis: this._state.analysis,
+            proposal: this._state.proposal,
+            currentStep: this._state.currentStep,
+            completedSteps: [...this._state.completedSteps],
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const date = new Date().toISOString().slice(0, 10);
+        const theme = (this._state.seed?.refinedResult?.title || '研究計画').substring(0, 20);
+        a.href = url;
+        a.download = `研究計画_${theme}_${date}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    /** JSONファイルから研究データをインポート */
+    importFromJSON(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    const dataKeys = ['seed', 'rq', 'guideline', 'review', 'data', 'analysis', 'proposal', 'currentStep'];
+                    dataKeys.forEach(key => {
+                        if (imported[key] !== undefined) {
+                            this._state[key] = imported[key];
+                        }
+                    });
+                    if (imported.completedSteps) {
+                        this._state.completedSteps = new Set(imported.completedSteps);
+                    }
+                    this._save();
+                    this._notify('*');
+                    resolve(true);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            reader.onerror = () => reject(new Error('ファイルの読み込みに失敗しました'));
+            reader.readAsText(file);
+        });
     }
 
     saveApiKey(key) {

@@ -39,11 +39,17 @@ let currentStep = state.get('currentStep') || 1;
 // ===========================
 
 function init() {
+    // 保存データがあれば再開ダイアログを表示
+    if (state.hasSavedData()) {
+        showResumeDialog();
+    }
+
     renderCurrentStep();
     updateNavigation();
     initSettings();
     initTabListeners();
     initNavListeners();
+    initSaveLoadButtons();
     restoreSummary();
 }
 
@@ -212,6 +218,96 @@ function setSum(key, value) {
     if (el) {
         el.textContent = value;
         el.classList.add('active');
+    }
+}
+
+// ===========================
+//  SAVE / LOAD / RESUME
+// ===========================
+
+function showResumeDialog() {
+    // 再開ダイアログを動的に生成
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay visible';
+    overlay.id = 'resumeDialog';
+    overlay.innerHTML = `
+        <div class="modal" style="max-width: 440px;">
+            <div class="modal-header">
+                <h2>📂 保存データが見つかりました</h2>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <p style="margin-bottom: var(--space-4); color: var(--color-text-secondary);">
+                    前回の作業データが保存されています。<br>続きから再開しますか？
+                </p>
+                <div style="display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap;">
+                    <button class="btn btn-primary" id="btnResume">
+                        ▶ 続きから再開
+                    </button>
+                    <button class="btn btn-outline" id="btnNewProject">
+                        🆕 新しく始める
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById('btnResume').addEventListener('click', () => {
+        state.loadFullState();
+        currentStep = state.get('currentStep') || 1;
+        renderCurrentStep();
+        updateNavigation();
+        restoreSummary();
+        overlay.remove();
+    });
+
+    document.getElementById('btnNewProject').addEventListener('click', () => {
+        state.reset();
+    });
+}
+
+function initSaveLoadButtons() {
+    const btnExport = document.getElementById('btnExport');
+    const btnImport = document.getElementById('btnImport');
+    const fileInput = document.getElementById('fileImport');
+
+    if (btnExport) {
+        btnExport.addEventListener('click', () => {
+            state.exportToJSON();
+            // フィードバック表示
+            const origHTML = btnExport.innerHTML;
+            btnExport.innerHTML = '✅ 保存しました';
+            setTimeout(() => { btnExport.innerHTML = origHTML; }, 2000);
+        });
+    }
+
+    if (btnImport && fileInput) {
+        btnImport.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                await state.importFromJSON(file);
+                currentStep = state.get('currentStep') || 1;
+                renderCurrentStep();
+                updateNavigation();
+                restoreSummary();
+
+                // 成功フィードバック
+                const origHTML = btnImport.innerHTML;
+                btnImport.innerHTML = '✅ 読み込み完了';
+                setTimeout(() => { btnImport.innerHTML = origHTML; }, 2000);
+            } catch (err) {
+                alert('ファイルの読み込みに失敗しました: ' + err.message);
+            }
+
+            // リセット（同じファイルを再選択可能にする）
+            fileInput.value = '';
+        });
     }
 }
 
