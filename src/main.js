@@ -38,7 +38,12 @@ let currentStep = state.get('currentStep') || 1;
 //  INITIALIZATION
 // ===========================
 
+let _initialized = false;
+
 function init() {
+    if (_initialized) return;
+    _initialized = true;
+
     // 保存データがあれば再開ダイアログを表示
     if (state.hasSavedData()) {
         showResumeDialog();
