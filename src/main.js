@@ -195,8 +195,8 @@ function restoreSummary() {
     const data = state.get('data');
     const analysis = state.get('analysis');
 
-    if (seed.refinedResult?.rq || seed.refinedResult?.title || seed.question) {
-        setSum('Theme', ((seed.refinedResult?.rq || seed.refinedResult?.title || seed.question)).substring(0, 60));
+    if (seed.refinedResult?.theme || seed.refinedResult?.title || seed.question) {
+        setSum('Theme', ((seed.refinedResult?.theme || seed.refinedResult?.title || seed.question)).substring(0, 60));
     }
     if (seed.refinedResult) {
         setSum('RQ', seed.refinedResult.rq || seed.refinedResult.title);

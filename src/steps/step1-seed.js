@@ -200,6 +200,7 @@ async function generateRefinedResult() {
 【出力形式（JSONのみ）】
 {
   "type": "research" | "practice" | "qi",
+  "theme": "研究テーマ（名詞句として体言止め。「〜に関する研究」など）",
   "rq": "整理されたリサーチクエスチョン（必ず「〜は〜にどのような影響を与えるか？」などの疑問形で出力すること。実践報告やQIの場合はその目標を疑問形で構文すること）",
   "target": "対象者（母集団）",
   "goal": "目的・核心的な到達点",
@@ -248,6 +249,10 @@ function renderRefinedResult(result) {
           AIが提案したリサーチクエスチョン（RQ）を必要に応じて編集し、納得できる内容になったら「このRQで確定する」ボタンを押してください。
         </p>
         <div class="format-block">
+          <div class="format-row" style="margin-bottom: var(--space-4);">
+            <span class="format-label">テーマ:</span>
+            <span class="format-value"><strong>${result.theme || result.title || '未設定'}</strong></span>
+          </div>
           <div class="format-row" style="flex-direction: column; align-items: stretch; gap: var(--space-2);">
             <span class="format-label">${labels.title}:</span>
             <textarea id="refinedRqInput" class="textarea input-rq" style="min-height: 80px; width: 100%; box-sizing: border-box; overflow: hidden; resize: none; font-size: 0.95rem; line-height: 1.6;" ${isConfirmed ? 'readonly' : ''}>${result.rq || result.title || ''}</textarea>
@@ -307,7 +312,8 @@ function attachRefinedResultListeners(area, result) {
     state.set('seed.refinedResult', result);
     state.set('seed.rqConfirmed', true);
 
-    updateSummary('Theme', result.rq);
+    updateSummary('Theme', (result.theme || result.title || result.rq).substring(0, 60));
+    updateSummary('RQ', result.rq);
 
     // 再描画とリスナー再アタッチ
     area.innerHTML = renderRefinedResult(result);
