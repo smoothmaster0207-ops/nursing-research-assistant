@@ -51,7 +51,7 @@ function renderInputSummary() {
   const refined = seed.refinedResult;
   return `
     <div>
-      <p><strong>テーマ:</strong> ${refined ? refined.title.substring(0, 80) + '...' : '未整理'}</p>
+      <p><strong>テーマ:</strong> ${refined ? (refined.theme || refined.rq || refined.title || '未整理').substring(0, 80) : '未整理'}</p>
       <p><strong>研究デザイン:</strong> ${rq.selectedDesign || '未選択'}</p>
       <p><strong>ガイドライン:</strong> ${guideline.selected || '未選択'}</p>
     </div>
