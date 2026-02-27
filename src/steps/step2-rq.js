@@ -80,9 +80,9 @@ async function generateDesign(requestAlternative = false) {
 
   // 代替リクエスト時は、過去の提案を「避けるべきデザイン」として伝える
   let userMsg = `
-整理されたテーマ: ${refinedResult.title}
-対象: ${refinedResult.target}
-ゴール: ${refinedResult.goal}
+整理されたリサーチクエスチョン: ${refinedResult.rq || refinedResult.title || '未設定'}
+対象: ${refinedResult.target || '未設定'}
+ゴール: ${refinedResult.goal || '未設定'}
 アプローチ例: ${(refinedResult.approaches || []).map(a => a.name).join(', ')}
   `.trim();
 

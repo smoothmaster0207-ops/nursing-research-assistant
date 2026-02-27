@@ -113,7 +113,7 @@ async function suggestQueries() {
   area.innerHTML = '<p class="text-muted" style="text-align: center; padding: var(--space-4);">AIが最適な検索式を考案中です...</p>';
 
   const refined = state.get('seed.refinedResult');
-  const theme = refined?.title || '';
+  const theme = refined?.rq || refined?.title || '';
   const rqText = refined?.goal || '';
   const purpose = refined?.goal || '';
   const design = state.get('rq.selectedDesign') || '';
@@ -204,7 +204,7 @@ async function runReview() {
 
   const review = state.get('review');
   const refined = state.get('seed.refinedResult');
-  const theme = refined?.title || '';
+  const theme = refined?.rq || refined?.title || '';
   const rqText = refined?.goal || '';
   const purpose = refined?.goal || '';
   const design = state.get('rq.selectedDesign') || '';
