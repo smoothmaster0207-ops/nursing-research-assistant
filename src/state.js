@@ -22,7 +22,8 @@ const DEFAULT_STATE = {
 
     // Step 2: デザイン案 (Research Design Proposals)
     rq: {
-        aiResults: null, // List of 10 FINER proposals
+        aiResults: null, // 現在の提案（単一オブジェクト）
+        proposalHistory: [], // 過去の提案履歴
         selectedDesign: null,
     },
 

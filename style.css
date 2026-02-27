@@ -963,6 +963,69 @@ body {
   opacity: 1;
 }
 
+.proposal-card.selected .select-hint {
+  opacity: 1;
+  color: var(--color-success);
+}
+
+/* メイン提案カード */
+.proposal-card.main-proposal {
+  border-width: 2px;
+}
+
+/* --- 提案履歴リスト --- */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: var(--font-size-sm);
+}
+
+.history-item:hover {
+  border-color: var(--color-primary-light);
+  background: var(--color-primary-bg);
+}
+
+.history-item.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.history-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.history-item.selected .history-number {
+  background: var(--color-primary);
+  color: white;
+}
+
+.history-title {
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
 /* --- Guideline checklist (Step 3) --- */
 .guideline-card {
   border: 2px solid var(--color-primary-border);

@@ -15,6 +15,10 @@ export async function callAI(systemPrompt, userMessage, options = {}) {
         return await getDemoResponse(options.module || 'default', userMessage);
     }
 
+    // JSON出力を期待するモジュールのリスト
+    const jsonModules = ['designSelection', 'rqOverview', 'literatureReview', 'statisticsProposal'];
+    const expectJson = jsonModules.includes(options.module);
+
     try {
         if (apiProvider === 'gemini') {
             // Gemini API Call
@@ -36,6 +40,15 @@ export async function callAI(systemPrompt, userMessage, options = {}) {
                 parts: [{ text: userMessage }]
             });
 
+            const generationConfig = {
+                temperature: options.temperature ?? 0.7,
+                maxOutputTokens: options.maxTokens || 4096,
+            };
+            // JSON出力が期待されるモジュールではresponseMimeTypeを設定
+            if (expectJson) {
+                generationConfig.responseMimeType = 'application/json';
+            }
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -45,10 +58,7 @@ export async function callAI(systemPrompt, userMessage, options = {}) {
                         parts: [{ text: systemPrompt }]
                     },
                     contents: contents,
-                    generationConfig: {
-                        temperature: options.temperature ?? 0.7,
-                        maxOutputTokens: options.maxTokens || 2048,
-                    }
+                    generationConfig: generationConfig,
                 }),
             });
 
@@ -76,7 +86,7 @@ export async function callAI(systemPrompt, userMessage, options = {}) {
                         { role: 'user', content: userMessage },
                     ],
                     temperature: options.temperature ?? 0.7,
-                    max_tokens: options.maxTokens || 2000,
+                    max_tokens: options.maxTokens || 4096,
                 }),
             });
 
