@@ -38,6 +38,11 @@ export function renderStep7(container) {
   `;
 
   container.querySelector('#btnGenerate').addEventListener('click', generateProposal);
+
+  // 既存の結果がある場合、ボタンのイベントリスナーを設定
+  if (proposal.draft) {
+    attachExportListeners(proposal.draft);
+  }
 }
 
 function renderInputSummary() {
@@ -81,21 +86,24 @@ async function generateProposal() {
 以下の情報を統合して研究計画書草案を作成してください。
 
 【研究テーマ】
-${seed.refinedResult?.rq || seed.refinedResult?.title || seed.question || ''}
+${seed.refinedResult?.theme || seed.refinedResult?.title || ''}
+
+【リサーチクエスチョン】
+${seed.refinedResult?.rq || seed.question || ''}
 
 【研究デザイン】
 ${rq.selectedDesign || ''}
 
 【研究の骨子】
+対象: ${seed.refinedResult?.target || '未整理'}
 ゴール: ${seed.refinedResult?.goal || '未整理'}
-アプローチ: ${(seed.refinedResult?.approaches || []).map(a => a.name).join(', ')}
+アプローチ: ${(seed.refinedResult?.approaches || []).map(a => `${a.name}: ${a.description}`).join('\n')}
 
 【準拠ガイドライン】
 ${guideline.selected || ''}
 
-【文献レビュー概要】
-${review.aiResult?.narrative || '未実施'}
-研究ギャップ: ${(review.aiResult?.gaps || []).join('、')}
+【文献レビュー概要（論理構成案）】
+${review.aiResult?.structure || '未実施'}
 
 【データ収集計画】
 データタイプ: ${(data.types || []).join(', ')}
@@ -104,6 +112,10 @@ ${review.aiResult?.narrative || '未実施'}
 
 【分析方法】
 主解析: ${analysis.aiResult?.primaryAnalysis?.method || '未提案'}
+理由: ${analysis.aiResult?.primaryAnalysis?.reason || ''}
+副解析: ${(analysis.aiResult?.secondaryAnalyses || []).map(s => s.method).join(', ')}
+効果量: ${analysis.aiResult?.effectSize || ''}
+多変量解析: ${analysis.aiResult?.multivariateNeeded ? analysis.aiResult?.multivariateMethod : '不要'}
 サンプルサイズ根拠: ${analysis.aiResult?.sampleSizeNote || ''}
   `.trim();
 
@@ -114,6 +126,7 @@ ${review.aiResult?.narrative || '未実施'}
     });
     state.set('proposal.draft', response);
     document.querySelector('#step7Results').innerHTML = renderProposal(response);
+    attachExportListeners(response);
   } catch (error) {
     document.querySelector('#step7Results').innerHTML = `
       <div class="card" style="border-color: var(--color-danger);">
@@ -147,25 +160,194 @@ function renderProposal(draft) {
       </div>
     </div>
 
-    <div class="export-actions">
-      <button class="btn btn-success" id="btnCopy" onclick="
-        navigator.clipboard.writeText(${JSON.stringify(draft).replace(/</g, '\\u003c')});
-        this.textContent = '✅ コピーしました';
-        setTimeout(() => this.textContent = '📋 テキストをコピー', 2000);
-      ">
+    <div class="export-actions" style="display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-4);">
+      <button class="btn btn-success" id="btnCopyProposal">
         📋 テキストをコピー
       </button>
-      <button class="btn btn-outline" id="btnDownload" onclick="
-        const blob = new Blob([${JSON.stringify(draft).replace(/</g, '\\u003c')}], {type:'text/plain;charset=utf-8'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = '研究計画書草案.txt';
-        a.click();
-      ">
-        💾 テキストファイルとしてダウンロード
+      <button class="btn btn-primary" id="btnDownloadWord">
+        📄 Word形式でダウンロード
+      </button>
+      <button class="btn btn-outline" id="btnDownloadPDF">
+        📑 PDF形式でダウンロード
       </button>
     </div>
   `;
+}
+
+function attachExportListeners(draft) {
+  // コピー
+  const btnCopy = document.querySelector('#btnCopyProposal');
+  if (btnCopy) {
+    btnCopy.addEventListener('click', () => {
+      navigator.clipboard.writeText(draft).then(() => {
+        btnCopy.textContent = '✅ コピーしました';
+        setTimeout(() => { btnCopy.textContent = '📋 テキストをコピー'; }, 2000);
+      }).catch(() => {
+        // Fallback for clipboard API failure
+        const ta = document.createElement('textarea');
+        ta.value = draft;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btnCopy.textContent = '✅ コピーしました';
+        setTimeout(() => { btnCopy.textContent = '📋 テキストをコピー'; }, 2000);
+      });
+    });
+  }
+
+  // Word形式ダウンロード（.doc形式のHTML）
+  const btnWord = document.querySelector('#btnDownloadWord');
+  if (btnWord) {
+    btnWord.addEventListener('click', () => {
+      downloadAsWord(draft);
+    });
+  }
+
+  // PDF形式ダウンロード（ブラウザ印刷）
+  const btnPDF = document.querySelector('#btnDownloadPDF');
+  if (btnPDF) {
+    btnPDF.addEventListener('click', () => {
+      downloadAsPDF(draft);
+    });
+  }
+}
+
+function downloadAsWord(draft) {
+  // Markdown → HTML変換
+  const htmlBody = draft
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+
+  const wordContent = `
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: 'ＭＳ 明朝', 'Yu Mincho', serif;
+      font-size: 10.5pt;
+      line-height: 1.8;
+      margin: 2cm 2.5cm;
+    }
+    h1 {
+      font-size: 16pt;
+      text-align: center;
+      margin-bottom: 24pt;
+      border-bottom: none;
+    }
+    h2 {
+      font-size: 13pt;
+      margin-top: 18pt;
+      margin-bottom: 6pt;
+      border-bottom: 1px solid #333;
+      padding-bottom: 3pt;
+    }
+    h3 {
+      font-size: 11pt;
+      margin-top: 12pt;
+      margin-bottom: 4pt;
+    }
+    p {
+      text-indent: 1em;
+      margin: 0 0 6pt 0;
+    }
+    li {
+      margin-left: 2em;
+      margin-bottom: 3pt;
+    }
+  </style>
+</head>
+<body>
+  ${htmlBody}
+</body>
+</html>`;
+
+  const blob = new Blob(['\ufeff' + wordContent], { type: 'application/msword;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const theme = (state.get('seed')?.refinedResult?.theme || state.get('seed')?.refinedResult?.rq || '研究計画書').substring(0, 30);
+  a.href = url;
+  a.download = `研究計画書草案_${theme}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function downloadAsPDF(draft) {
+  // 印刷用ウィンドウを生成してPDF出力
+  const htmlBody = draft
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>研究計画書草案</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 2cm 2.5cm;
+    }
+    body {
+      font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'ＭＳ 明朝', serif;
+      font-size: 10.5pt;
+      line-height: 1.8;
+      color: #000;
+    }
+    h1 {
+      font-size: 16pt;
+      text-align: center;
+      margin-bottom: 24pt;
+    }
+    h2 {
+      font-size: 13pt;
+      margin-top: 18pt;
+      margin-bottom: 6pt;
+      border-bottom: 1px solid #333;
+      padding-bottom: 3pt;
+    }
+    h3 {
+      font-size: 11pt;
+      margin-top: 12pt;
+      margin-bottom: 4pt;
+    }
+    p {
+      text-indent: 1em;
+      margin: 0 0 6pt 0;
+    }
+    li {
+      margin-left: 2em;
+      margin-bottom: 3pt;
+    }
+  </style>
+</head>
+<body>
+  ${htmlBody}
+</body>
+</html>`);
+  printWindow.document.close();
+  // 少し待ってから印刷ダイアログを表示
+  setTimeout(() => {
+    printWindow.print();
+  }, 500);
 }
 
 export function validateStep7() {
