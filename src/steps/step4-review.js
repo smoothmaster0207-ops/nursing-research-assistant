@@ -252,7 +252,7 @@ ${checklistSummary}
       const jsonStr = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       parsed = JSON.parse(jsonStr);
     } catch {
-      parsed = { narrative: response, matrix: '解析中...', citationList: '出典確認中' };
+      parsed = { structure: response };
     }
     state.set('review.aiResult', parsed);
     document.querySelector('#step4Results').innerHTML = renderReviewResults(parsed);
@@ -275,29 +275,18 @@ ${checklistSummary}
 }
 
 function renderReviewResults(data) {
+  // 既存データ（全文やmatrix）の後方互換性も持たせる
+  const content = data.structure || data.narrative || '';
   return `
     <div class="ai-response">
-      <div class="ai-response-header">📖 研究の背景と意義（草案）</div>
+      <div class="ai-response-header">📖 背景と意義の論理構成案（設計図）</div>
       <div class="ai-response-body">
-        
-        <div class="academic-text">
-          ${data.narrative.replace(/\n/g, '<br>')}
+        <p class="text-muted" style="margin-bottom: var(--space-4); font-size: 0.9rem;">
+          以下は検索した文献を使ってどのような順番で背景を記述するべきかの「構成案」です。これを参考に実際の文献を検索し、ご自身で文章を肉付けしてください。
+        </p>
+        <div class="academic-text" style="line-height: 1.8;">
+          ${content.replace(/\n/g, '<br>')}
         </div>
-
-        ${data.matrix ? `
-          <div class="mt-6 p-4 rounded-lg bg-gray-50 border border-border">
-            <h4>📊 先行研究・知見の整理</h4>
-            <div class="small text-muted">${data.matrix}</div>
-          </div>
-        ` : ''}
-
-        ${data.citationList ? `
-          <div class="mt-6 citation-box">
-            <h4>📚 引用文献リスト（APA 7th準拠）</h4>
-            <div class="small monospace">${data.citationList.replace(/\n/g, '<br>')}</div>
-          </div>
-        ` : ''}
-
       </div>
     </div>
   `;
