@@ -47,8 +47,10 @@ const DEFAULT_STATE = {
     // Step 5: データ収集
     data: {
         types: [],
+        typeOtherText: '',
         sampleSize: '',
         grouping: '',
+        groupingOtherText: '',
     },
 
     // Step 6: 分析方法
