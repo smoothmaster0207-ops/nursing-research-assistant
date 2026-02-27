@@ -175,7 +175,7 @@ function renderAnalysisResults(data) {
           <h4>🎯 主解析</h4>
           <div class="card card-highlight" style="margin-bottom: var(--space-4);">
             <h3 style="color: var(--color-primary); margin-bottom: var(--space-2);">${data.primaryAnalysis.method}</h3>
-            <p>${data.primaryAnalysis.reason}</p>
+            <div style="white-space: pre-wrap; line-height: 1.6;">${data.primaryAnalysis.reason}</div>
           </div>
         ` : ''}
 
@@ -184,7 +184,7 @@ function renderAnalysisResults(data) {
           ${data.secondaryAnalyses.map(s => `
             <div class="card" style="margin-bottom: var(--space-3);">
               <strong>${s.method}</strong>
-              <p style="color: var(--color-text-secondary); margin-top: var(--space-1);">${s.reason}</p>
+              <div style="color: var(--color-text-secondary); margin-top: var(--space-2); white-space: pre-wrap; line-height: 1.5;">${s.reason}</div>
             </div>
           `).join('')}
         ` : ''}
@@ -202,7 +202,7 @@ function renderAnalysisResults(data) {
         ${data.sampleSizeNote ? `
           <h4>👥 サンプルサイズ概算</h4>
           <div class="card card-success">
-            <p>${data.sampleSizeNote}</p>
+            <div style="white-space: pre-wrap; line-height: 1.5;">${data.sampleSizeNote}</div>
           </div>
         ` : ''}
 
