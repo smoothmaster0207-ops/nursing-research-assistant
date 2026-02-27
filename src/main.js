@@ -129,6 +129,13 @@ function initNavListeners() {
     });
 
     btnNext.addEventListener('click', () => {
+        // Validate current step before proceeding
+        const step = STEPS.find(s => s.id === currentStep);
+        if (step && step.validate && !step.validate()) {
+            alert('現在のステップの必須項目が完了していません。入力を確認してください。');
+            return;
+        }
+
         // Mark current step as completed
         const completedSteps = state.get('completedSteps');
         completedSteps.add(currentStep);
