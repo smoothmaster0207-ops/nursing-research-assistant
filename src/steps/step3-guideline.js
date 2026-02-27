@@ -129,9 +129,22 @@ const CHECKLIST_ITEMS = {
   ],
 };
 
+// 研究タイプ一覧（テーブル表示用）
+const DESIGN_TABLE = [
+  { type: '介入研究', guideline: 'CONSORT', recommendFor: ['research'] },
+  { type: '観察研究', guideline: 'STROBE', recommendFor: ['research'] },
+  { type: 'QI（質改善）', guideline: 'SQUIRE 2.0', recommendFor: ['qi'] },
+  { type: '質的研究', guideline: 'COREQ', recommendFor: ['research'] },
+  { type: 'スコーピングレビュー', guideline: 'PRISMA-ScR', recommendFor: [] },
+  { type: 'システマティックレビュー', guideline: 'PRISMA 2020', recommendFor: [] },
+  { type: '混合研究法', guideline: 'GRAMMS', recommendFor: [] },
+  { type: '事例／実践報告', guideline: 'CARE', recommendFor: ['practice'] },
+];
+
 export function renderStep3(container) {
   const design = state.get('rq.selectedDesign') || '';
   const guideline = findGuideline(design);
+  const seedType = state.get('seed.refinedResult')?.type || '';
 
   if (guideline) {
     state.set('guideline.selected', guideline.name);
@@ -144,77 +157,125 @@ export function renderStep3(container) {
     <div class="fade-in">
       <h2 class="step-title">📑 Step 3：ガイドライン選択</h2>
       <p class="step-description">
-        研究デザインに基づいて、準拠すべき報告ガイドラインを自動選択しました。
-        チェックリストを確認し、計画に反映してください。
+        研究デザインに基づいて、準拠すべき報告ガイドラインを選択します。
+        下の表から研究タイプをクリックして選んでください。${seedType ? '★マークは Step 1 の結果に基づく推奨です。' : ''}
       </p>
 
       <!-- Guideline mapping table -->
       <div class="card" style="margin-bottom: var(--space-6);">
         <h3 class="section-title">📊 研究タイプとガイドライン対応表</h3>
-        <table class="data-table">
+        <p class="hint" style="margin-bottom: var(--space-4);">行をクリックして研究デザインを選択してください</p>
+        <table class="data-table data-table-selectable" id="designTable">
           <thead>
             <tr>
               <th>研究タイプ</th>
               <th>準拠ガイドライン</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            ${[
-      ['介入研究', 'CONSORT'],
-      ['観察研究', 'STROBE'],
-      ['QI（質改善）', 'SQUIRE 2.0'],
-      ['質的研究', 'COREQ'],
-      ['スコーピングレビュー', 'PRISMA-ScR'],
-      ['システマティックレビュー', 'PRISMA 2020'],
-      ['混合研究法', 'GRAMMS'],
-      ['事例／実践報告', 'CARE'],
-    ].map(([type, gl]) => `
-              <tr style="${guideline?.name === gl ? 'background: var(--color-primary-bg); font-weight: 600;' : ''}">
-                <td>${type}</td>
-                <td>${gl} ${guideline?.name === gl ? '<span class="tag tag-primary">選択中</span>' : ''}</td>
+            ${DESIGN_TABLE.map(row => {
+    const isSelected = guideline?.name === row.guideline && design === row.type;
+    const isRecommended = seedType && row.recommendFor.includes(seedType);
+    return `
+              <tr class="${isSelected ? 'selected-row' : ''} ${isRecommended ? 'recommended-row' : ''}"
+                  data-type="${row.type}" data-guideline="${row.guideline}">
+                <td>
+                  ${isRecommended ? '<span class="tag tag-recommend">★ 推奨</span> ' : ''}${row.type}
+                </td>
+                <td>${row.guideline}</td>
+                <td style="text-align: center;">${isSelected ? '<span class="tag tag-primary">✓ 選択中</span>' : ''}</td>
               </tr>
-            `).join('')}
+            `;
+  }).join('')}
           </tbody>
         </table>
+
+        ${seedType ? renderRecommendReason(seedType) : ''}
       </div>
 
-      ${guideline ? `
-        <div class="guideline-card">
-          <div class="guideline-card-header">
-            <h3>${guideline.name}</h3>
-            <p>${guideline.full}</p>
-            <p style="margin-top: var(--space-2); font-size: var(--font-size-xs);">${guideline.desc}</p>
+      <div id="guidelineDetailArea">
+        ${guideline ? renderGuidelineDetail(guideline, items, checkedItems) : `
+          <div class="card" style="text-align: center; padding: var(--space-12);">
+            <p style="color: var(--color-text-muted);">上の表から研究タイプを選択してください。</p>
           </div>
-          <div class="checklist" id="guidelineChecklist">
-            <h4 style="padding: var(--space-3) 0; font-weight: 700;">チェックリスト</h4>
-            ${items.map((item, i) => `
-              <div class="checklist-item">
-                <div class="checklist-check ${checkedItems.includes(i) ? 'checked' : ''}" data-index="${i}">
-                  ${checkedItems.includes(i) ? '✓' : ''}
-                </div>
-                <span>${item}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      ` : `
-        <div class="card" style="text-align: center; padding: var(--space-12);">
-          <p style="color: var(--color-text-muted);">研究デザインを選択してからこのステップに進んでください。</p>
-        </div>
-      `}
+        `}
+      </div>
     </div>
   `;
 
   // Update summary
   if (guideline) {
-    const sumGL = document.querySelector('#sumGuideline');
-    if (sumGL) {
-      sumGL.textContent = guideline.name;
-      sumGL.classList.add('active');
-    }
+    updateGuidelineSummary(guideline.name);
   }
 
+  // Table row click listeners
+  container.querySelectorAll('#designTable tbody tr').forEach(row => {
+    row.addEventListener('click', () => {
+      const type = row.dataset.type;
+      const gl = row.dataset.guideline;
+
+      // Update state
+      state.set('rq.selectedDesign', type);
+      state.set('guideline.checklist', []);
+
+      const newGuideline = GUIDELINE_MAP[type] || findGuideline(type);
+      if (newGuideline) {
+        state.set('guideline.selected', newGuideline.name);
+      }
+
+      // Update table highlight
+      container.querySelectorAll('#designTable tbody tr').forEach(r => {
+        r.classList.remove('selected-row');
+        const lastTd = r.querySelector('td:last-child');
+        if (lastTd) lastTd.innerHTML = '';
+      });
+      row.classList.add('selected-row');
+      const lastTd = row.querySelector('td:last-child');
+      if (lastTd) lastTd.innerHTML = '<span class="tag tag-primary">✓ 選択中</span>';
+
+      // Update guideline detail
+      if (newGuideline) {
+        const detailArea = container.querySelector('#guidelineDetailArea');
+        const newItems = CHECKLIST_ITEMS[newGuideline.name] || [];
+        detailArea.innerHTML = renderGuidelineDetail(newGuideline, newItems, []);
+        attachChecklistListeners(container);
+        updateGuidelineSummary(newGuideline.name);
+      }
+
+      // Update design summary
+      updateSummary('Design', type);
+    });
+  });
+
   // Checklist interactions
+  attachChecklistListeners(container);
+}
+
+function renderGuidelineDetail(guideline, items, checkedItems) {
+  return `
+    <div class="guideline-card">
+      <div class="guideline-card-header">
+        <h3>${guideline.name}</h3>
+        <p>${guideline.full}</p>
+        <p style="margin-top: var(--space-2); font-size: var(--font-size-xs);">${guideline.desc}</p>
+      </div>
+      <div class="checklist" id="guidelineChecklist">
+        <h4 style="padding: var(--space-3) 0; font-weight: 700;">チェックリスト</h4>
+        ${items.map((item, i) => `
+          <div class="checklist-item">
+            <div class="checklist-check ${checkedItems.includes(i) ? 'checked' : ''}" data-index="${i}">
+              ${checkedItems.includes(i) ? '✓' : ''}
+            </div>
+            <span>${item}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function attachChecklistListeners(container) {
   container.querySelectorAll('.checklist-check').forEach(checkEl => {
     checkEl.addEventListener('click', () => {
       const idx = parseInt(checkEl.dataset.index);
@@ -233,6 +294,53 @@ export function renderStep3(container) {
   });
 }
 
+function updateGuidelineSummary(name) {
+  const sumGL = document.querySelector('#sumGuideline');
+  if (sumGL) {
+    sumGL.textContent = name;
+    sumGL.classList.add('active');
+  }
+}
+
+function renderRecommendReason(seedType) {
+  const reasons = {
+    research: {
+      icon: '🔬',
+      title: '学術研究として整理されました',
+      designs: '介入研究・観察研究・質的研究',
+      reason: 'Step 1 の対話から、仮説の検証や新たな知見の発見を目的とした学術研究と判断しました。研究の目的や方法に応じて、介入研究（RCT等）、観察研究（横断・コホート等）、質的研究（インタビュー・参与観察等）のいずれかを選択してください。',
+    },
+    qi: {
+      icon: '📈',
+      title: '質改善（QI）プロジェクトとして整理されました',
+      designs: 'QI（質改善）',
+      reason: 'Step 1 の対話から、現場の業務プロセスやケアの質を改善することが主目的と判断しました。QIプロジェクトでは SQUIRE 2.0 ガイドラインに沿って報告することが推奨されています。',
+    },
+    practice: {
+      icon: '📝',
+      title: '実践報告として整理されました',
+      designs: '事例／実践報告',
+      reason: 'Step 1 の対話から、臨床での実践経験や症例を共有・報告することが主目的と判断しました。事例報告では CARE ガイドラインに沿って構造化することで、読者にとって再現可能で学びの多い報告になります。',
+    },
+  };
+
+  const info = reasons[seedType];
+  if (!info) return '';
+
+  return `
+    <div class="recommend-reason" style="margin-top: var(--space-4);">
+      <div class="recommend-reason-header">
+        <span>${info.icon}</span>
+        <strong>${info.title}</strong>
+      </div>
+      <div class="recommend-reason-body">
+        <p><strong>推奨デザイン：</strong>${info.designs}</p>
+        <p>${info.reason}</p>
+      </div>
+    </div>
+  `;
+}
+
 function findGuideline(design) {
   if (!design) return null;
   // Try exact match first
@@ -243,6 +351,14 @@ function findGuideline(design) {
   }
   // Default to STROBE for unrecognized designs
   return GUIDELINE_MAP['横断研究'];
+}
+
+function updateSummary(key, value) {
+  const el = document.querySelector(`#sum${key}`);
+  if (el) {
+    el.textContent = value;
+    el.classList.add('active');
+  }
 }
 
 export function validateStep3() {

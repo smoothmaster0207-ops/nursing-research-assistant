@@ -38,7 +38,7 @@ export function renderStep1(container) {
           </div>
 
           <div class="chat-input-area">
-            <input type="text" class="input" id="chatInput" placeholder="回答を入力してください..." />
+            <textarea class="textarea" id="chatInput" placeholder="回答を入力してください..." rows="3"></textarea>
             <button class="btn btn-primary" id="btnSend">送信</button>
           </div>
         </div>
@@ -74,12 +74,23 @@ export function renderStep1(container) {
     const text = input.value.trim();
     if (!text) return;
     input.value = '';
+    input.style.height = 'auto';
     sendMessage(text);
   };
 
   btnSend.addEventListener('click', handleSend);
+  // Enterキーでの送信を明示的にブロック（改行のみ許可）
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.isComposing) handleSend();
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      // デフォルト動作（改行）は許可し、送信はしない
+      e.stopPropagation();
+    }
+  });
+
+  // textarea の高さを入力内容に合わせて自動調整
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 150) + 'px';
   });
 }
 
