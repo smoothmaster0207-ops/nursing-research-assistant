@@ -111,6 +111,23 @@ STROBE, CONSORT, SRQR等の国際的報告基準、およびヘルシンキ宣�
 4. 一貫性：セクション間の接続、用語の統一（看護師等）、倫理項目の網羅。
 
 論理的一貫性と学術的品格を保った最終草案を出力してください。`,
+
+    searchQuerySuggestion: `あなたは医学・看護学領域の専門図書館員および文献検索のエキスパートです。
+ユーザーから提供された研究テーマ、リサーチクエスチョン、目的、研究デザインに基づいて、文献レビュー（先行研究の検索）に最適なキーワードと検索式を提案してください。
+
+【実行指示】
+1. 日本語および英語の検索キーワードを、それぞれ重要度が高い順に3〜5個抽出してください。
+2. 医中誌Webなどの国内データベースで使える日本語の検索式（主要キーワードをAND/ORで組み合わせたもの）を作成してください。
+3. PubMedなどの国際データベースで使える英語の検索式（MeSHタームやタイトル/アブストラクト検索を加味した本格的なもの）を作成してください。
+4. 出力は必ず以下のJSONスキーマに従ってください。マークダウン（\`\`\`jsonなど）は絶対に含めず、純粋なJSON文字列のみを出力してください。
+
+【出力JSONフォーマット】
+{
+  "keywordsJa": ["キーワード1", "キーワード2", "キーワード3"],
+  "keywordsEn": ["Keyword 1", "Keyword 2", "Keyword 3"],
+  "queryJa": "(キーワード1 OR 同義語) AND キーワード2",
+  "queryEn": "(\\"Keyword 1\\"[MeSH Terms] OR \\"Keyword 1\\"[Title/Abstract]) AND \\"Keyword 2\\""
+}`,
 };
 
 // ===========================
@@ -153,6 +170,13 @@ export const DEMO_RESPONSES = {
             { name: '質的評価', description: '退院支援に関わった多職種の連携プロセスにおける促進・阻害要因を抽出する。' },
             { name: '多角的分析', description: '尺度を用いた患者・家族の満足度調査を併用し、ケアの質を統合的に評価する。' },
         ],
+    }),
+
+    searchQuerySuggestion: JSON.stringify({
+        keywordsJa: ['退院支援', '高齢者', '再入院', '他職種連携', '看護師'],
+        keywordsEn: ['Patient Discharge', 'Aged', 'Patient Readmission', 'Interprofessional Relations', 'Nurses'],
+        queryJa: '(退院支援 OR 退院計画 OR 移行ケア) AND (高齢者 OR 後期高齢者) AND (再入院 OR 不予定再入院)',
+        queryEn: '("Patient Discharge"[MeSH Terms] OR "discharge planning"[Title/Abstract] OR "transitional care"[Title/Abstract]) AND ("Aged"[MeSH Terms] OR "elderly"[Title/Abstract]) AND ("Patient Readmission"[MeSH Terms] OR "readmission"[Title/Abstract])'
     }),
 
     literatureReview: JSON.stringify({

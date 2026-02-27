@@ -40,6 +40,7 @@ const DEFAULT_STATE = {
         years: '5',
         language: 'ja+en',
         database: 'PubMed',
+        suggestedQueries: null,
         aiResult: null,
     },
 
