@@ -92,6 +92,11 @@ export function renderStep1(container) {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 150) + 'px';
   });
+
+  if (refinedResult) {
+    const area = container.querySelector('#refinedResultArea');
+    attachRefinedResultListeners(area, refinedResult);
+  }
 }
 
 function renderChatMessage(msg) {
@@ -218,25 +223,7 @@ async function generateRefinedResult() {
     if (area) {
       area.classList.remove('hidden');
       area.innerHTML = renderRefinedResult(result);
-
-      // 確定ボタンのイベントリスナーを設定
-      const btnConfirm = area.querySelector('#btnConfirmRq');
-      const rqInput = area.querySelector('#refinedRqInput');
-
-      btnConfirm.addEventListener('click', () => {
-        if (!rqInput.value.trim()) return;
-
-        // 編集されたRQで上書きして確定
-        result.rq = rqInput.value.trim();
-        state.set('seed.refinedResult', result);
-        state.set('seed.rqConfirmed', true);
-
-        // サマリーパネルの更新（確定後に初めて表示する）
-        updateSummary('Theme', result.rq);
-
-        // UIを「確定済み」に更新
-        area.innerHTML = renderRefinedResult(result);
-      });
+      attachRefinedResultListeners(area, result);
     }
   }
 }
@@ -263,7 +250,7 @@ function renderRefinedResult(result) {
         <div class="format-block">
           <div class="format-row" style="flex-direction: column; align-items: stretch; gap: var(--space-2);">
             <span class="format-label">${labels.title}:</span>
-            <textarea id="refinedRqInput" class="input" style="font-weight: 500; min-height: 80px;" ${isConfirmed ? 'readonly' : ''}>${result.rq || result.title || ''}</textarea>
+            <textarea id="refinedRqInput" class="textarea input-rq" style="min-height: 80px; width: 100%; box-sizing: border-box; overflow: hidden; resize: none; font-size: 0.95rem; line-height: 1.6;" ${isConfirmed ? 'readonly' : ''}>${result.rq || result.title || ''}</textarea>
           </div>
           <div class="format-row mt-4">
             <span class="format-label">対象:</span>
@@ -295,4 +282,35 @@ function updateSummary(key, value) {
 
 export function validateStep1() {
   return !!state.get('seed.refinedResult') && !!state.get('seed.rqConfirmed');
+}
+
+function attachRefinedResultListeners(area, result) {
+  const btnConfirm = area.querySelector('#btnConfirmRq');
+  const rqInput = area.querySelector('#refinedRqInput');
+  if (!btnConfirm || !rqInput) return;
+
+  const autoResize = () => {
+    rqInput.style.height = 'auto';
+    rqInput.style.height = Math.max(80, rqInput.scrollHeight + 2) + 'px';
+  };
+
+  // 初期表示時の高さ調整
+  requestAnimationFrame(autoResize);
+  setTimeout(autoResize, 100); // 念のため少し後にも調整
+
+  rqInput.addEventListener('input', autoResize);
+
+  btnConfirm.addEventListener('click', () => {
+    if (!rqInput.value.trim()) return;
+
+    result.rq = rqInput.value.trim();
+    state.set('seed.refinedResult', result);
+    state.set('seed.rqConfirmed', true);
+
+    updateSummary('Theme', result.rq);
+
+    // 再描画とリスナー再アタッチ
+    area.innerHTML = renderRefinedResult(result);
+    attachRefinedResultListeners(area, result);
+  });
 }
